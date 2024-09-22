@@ -38,12 +38,13 @@ jobs:
 
             PUBLIC_IPS=$(aws ec2 describe-instances --instance-ids $INSTANCE_IDS --query "Reservations[*].Instances[*].PublicIpAddress" --output json)
             echo "::set-output name=ec2_ips::$PUBLIC_IPS"
-
-            # Check if PUBLIC_IPS is empty
-            if [ "$PUBLIC_IPS" == "null" ]; then
+            FLATTENED_IPS=$(echo $PUBLIC_IPS | jq -c '. | flatten')
+          
+            # Check if FLATTENED_IPS is empty
+            if [ "$FLATTENED_IPS" == "null" ]; then
                 echo "::set-output name=ec2_ips::[]"
             else
-                echo "::set-output name=ec2_ips::$PUBLIC_IPS"
+                echo "::set-output name=ec2_ips::$FLATTENED_IPS"
             fi
 
   ssh_to_ec2:
