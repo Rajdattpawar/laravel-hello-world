@@ -8,8 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  laravel-build-artifacts:
-
+  get_ec2_ip:
     runs-on: ubuntu-latest
     outputs:
       ec2_ips: ${{ steps.get_ips.outputs.ec2_ips }}
@@ -40,12 +39,20 @@ jobs:
             PUBLIC_IPS=$(aws ec2 describe-instances --instance-ids $INSTANCE_IDS --query "Reservations[*].Instances[*].PublicIpAddress" --output json)
             echo "::set-output name=ec2_ips::$PUBLIC_IPS"
 
+            # Check if PUBLIC_IPS is empty
+            if [ "$PUBLIC_IPS" == "null" ]; then
+                echo "::set-output name=ec2_ips::[]"
+            else
+                echo "::set-output name=ec2_ips::$PUBLIC_IPS"
+            fi
+
   ssh_to_ec2:
     runs-on: ubuntu-latest
-    needs: laravel-build-artifacts
+    needs: get_ec2_ip
+    if: ${{ fromJson(needs.get_ec2_ip.outputs.ec2_ips) != '[]' }}
     strategy:
-      matrix:
-        ip: ${{ fromJson(needs.laravel-build-artifacts.outputs.ec2_ips) }}
+        matrix:
+            ip: ${{ fromJson(needs.get_ec2_ip.outputs.ec2_ips) }}
     steps:
         - name: executing remote ssh commands using ssh key
           uses: appleboy/ssh-action@v1.0.3
