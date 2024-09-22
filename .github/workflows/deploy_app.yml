@@ -8,19 +8,48 @@ on:
   workflow_dispatch:
 
 jobs:
-  laravel-tests:
+  laravel-build-artifacts:
 
     runs-on: ubuntu-latest
+    outputs:
+      ec2_ips: ${{ steps.get_ips.outputs.ec2_ips }}
+
     steps:
         - uses: shivammathur/setup-php@main
           with:
             php-version: '8.3'
         - uses: actions/checkout@v4
 
+        - name: Configure AWS CLI
+          uses: aws-actions/configure-aws-credentials@v1
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: us-east-1 # change to your desired region
+
+        - name: Get EC2 instance public IP
+          id: get_ips
+          run: |
+            INSTANCE_IDS=$(aws ec2 describe-instances --filters "Name=tag:App,Values=laravel" --query "Reservations[*].Instances[*].InstanceId" --output text)
+            if [ -z "$INSTANCE_IDS" ]; then
+                echo "No EC2 instances found with tag App=laravel."
+                exit 1
+            fi
+
+            PUBLIC_IPS=$(aws ec2 describe-instances --instance-ids $INSTANCE_IDS --query "Reservations[*].Instances[*].PublicIpAddress" --output json)
+            echo "::set-output name=ec2_ips::$PUBLIC_IPS"
+
+  ssh_to_ec2:
+    runs-on: ubuntu-latest
+    needs: laravel-build-artifacts
+    strategy:
+      matrix:
+        ip: ${{ fromJson(needs.laravel-build-artifacts.outputs.ec2_ips) }}
+    steps:
         - name: executing remote ssh commands using ssh key
           uses: appleboy/ssh-action@v1.0.3
           with:
-            host: 13.233.104.206
+            host: ${{ matrix.ip }}
             username: ec2-user
             key: ${{ secrets.SSH_KEY }}
             port: 22
