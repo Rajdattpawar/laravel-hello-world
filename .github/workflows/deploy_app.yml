@@ -22,6 +22,6 @@ jobs:
           with:
             host: 13.233.104.206
             username: ec2-user
-            key: ${{ secrets.KEY }}
+            key: ${{ secrets.SSH_KEY }}
             port: 22
             script: whoami
