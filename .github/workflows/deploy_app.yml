@@ -30,10 +30,11 @@ jobs:
         - name: Get EC2 instance public IP
           id: get_ips
           run: |
-            INSTANCE_IDS=$(aws ec2 describe-instances --filters "Name=tag:App,Values=laravel" --query "Reservations[*].Instances[*].InstanceId" --output text)
+            INSTANCE_IDS=$(aws ec2 describe-instances --filters "Name=tag:App,Values=laravel" "Name=instance-state-name,Values=running" --query "Reservations[*].Instances[*].InstanceId" --output text)
             if [ -z "$INSTANCE_IDS" ]; then
-                echo "No EC2 instances found with tag App=laravel."
-                exit 1
+                echo "No EC2 instances found with tag appname=laravel."
+                echo "::set-output name=ec2_ips::[]"
+                exit 0
             fi
 
             PUBLIC_IPS=$(aws ec2 describe-instances --instance-ids $INSTANCE_IDS --query "Reservations[*].Instances[*].PublicIpAddress" --output json)
