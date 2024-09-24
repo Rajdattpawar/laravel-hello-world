@@ -29,8 +29,11 @@ jobs:
           run: php artisan key:generate
 
         - name: Execute db migrate command
-          run: php artisan migrate --no-interaction -vvv
-          
+          run: |
+           mkdir -p database
+           touch database/database.sqlite
+           php artisan migrate --no-interaction -vvv
+
         - name: Create deployment artifact
           run: tar -czf app.tar.gz --exclude=*.git --exclude=tests *
         
