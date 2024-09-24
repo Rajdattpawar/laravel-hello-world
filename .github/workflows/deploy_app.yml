@@ -25,9 +25,6 @@ jobs:
         - name: Install Dependencies
           run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
 
-        - name: Generate key
-          run: php artisan key:generate
-
         - name: Execute db migrate command
           run: |
            mkdir -p database
@@ -119,7 +116,7 @@ jobs:
         
                 mkdir -p /var/www/html/storage/{app,public,framework,logs}
                 mkdir -p /var/www/html/storage/framework/{cache,sessions,testing,views}
-                chmod -R 0777 /var/www/html/storage
+                sudo chmod -R 0777 /var/www/html/storage 
 
         - name: Activate release
           uses: appleboy/ssh-action@master
@@ -129,16 +126,19 @@ jobs:
             ACTIVE_RELEASE_PATH: /var/www/html/current
             STORAGE_PATH: /var/www/html/storage
             BASE_PATH: /var/www/html
+            LARAVEL_ENV: ${{ secrets.LARAVEL_ENV }}
           with:
             host: ${{ matrix.ip }}
             username: ec2-user
             key: ${{ secrets.SSH_KEY }}
             port: 22
-            envs: GITHUB_SHA,RELEASE_PATH,ACTIVE_RELEASE_PATH,STORAGE_PATH,BASE_PATH,ENV_PATH
+            envs: GITHUB_SHA,RELEASE_PATH,ACTIVE_RELEASE_PATH,STORAGE_PATH,BASE_PATH,LARAVEL_ENV
             script: |
                 printf "%s" "$LARAVEL_ENV" > "${BASE_PATH}/.env"
                 ln -s -f $STORAGE_PATH $RELEASE_PATH
                 ln -s -n -f $RELEASE_PATH $ACTIVE_RELEASE_PATH
+                sudo chmod -R 0777 /var/www/html/current 
+                cd /var/www/html/current && php artisan key:generate
 
         - name: Run after hooks
           uses: appleboy/ssh-action@master
