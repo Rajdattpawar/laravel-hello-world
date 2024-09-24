@@ -35,7 +35,7 @@ jobs:
            php artisan migrate --no-interaction -vvv
 
         - name: Create deployment artifact
-          run: tar -czf app.tar.gz --exclude=*.git --exclude=tests *
+          run: tar -czf ${{ github.sha }}.tar.gz --exclude=*.git --exclude=tests *
         
         - name: Store artifact for distribution
           uses: actions/upload-artifact@v4
